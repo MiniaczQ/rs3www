@@ -32,7 +32,7 @@ pub struct S3Service {
     client: S3ServiceClient,
     directory: Arc<DirectoryConfig>,
     index_cache: Cache<String, String>,
-    explorer_cache: Cache<String, Directory>,
+    explorer_cache: Option<Cache<String, Directory>>,
 }
 
 #[derive(Clone)]
@@ -136,11 +136,11 @@ impl S3Service {
             .max_capacity(1000)
             .build();
 
-        let explorer_cache = Cache::builder()
+        let explorer_cache = config.directory.explorer.enabled.then_some(Cache::builder()
             .time_to_live(Duration::from_secs(config.directory.explorer.cache_seconds))
             .time_to_idle(Duration::from_secs(config.directory.explorer.cache_seconds) / 8)
             .max_capacity(1000)
-            .build();
+            .build());
 
         Self {
             client: S3ServiceClient {
@@ -191,23 +191,27 @@ impl S3Service {
             let result = self.client.clone().get_object(&index_file_key).await;
             if result.is_ok() {
                 self.index_cache
-                    .insert(index_file_key, index_file.clone())
+                    .insert(key, index_file.clone())
                     .await;
                 return result;
             }
         }
 
         info!("exploring the directory");
-        // Cached directory explorer
-        if let Some(directory) = self.explorer_cache.get(&key).await {
+        if let Some(explorer_cache) = self.explorer_cache.as_ref() {
+            // Cached directory explorer
+            if let Some(directory) = explorer_cache.get(&key).await {
+                return Ok(directory.into_response());
+            }
+            // Explore directory
+            let directory = self.client.list_directory(&key).await?;
+            explorer_cache
+                .insert(key.clone(), directory.clone())
+                .await;
             return Ok(directory.into_response());
         }
-        // Explore directory
-        let directory = self.client.list_directory(&key).await?;
-        self.explorer_cache
-            .insert(key.clone(), directory.clone())
-            .await;
-        return Ok(directory.into_response());
+
+        return Err(AppError::NotFound)
     }
 }
 
