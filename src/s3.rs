@@ -121,7 +121,7 @@ impl S3Service {
             .secret_access_key(&config.s3.secret_key)
             .build();
         let conf = aws_sdk_s3::Config::builder()
-            .behavior_version(BehaviorVersion::v2025_08_07())
+            .behavior_version(BehaviorVersion::v2026_01_12())
             .credentials_provider(SharedCredentialsProvider::new(creds))
             .endpoint_url(&config.s3.url)
             .region(Region::new(config.s3.region.clone()))
@@ -136,11 +136,13 @@ impl S3Service {
             .max_capacity(1000)
             .build();
 
-        let explorer_cache = config.directory.explorer.enabled.then_some(Cache::builder()
-            .time_to_live(Duration::from_secs(config.directory.explorer.cache_seconds))
-            .time_to_idle(Duration::from_secs(config.directory.explorer.cache_seconds) / 8)
-            .max_capacity(1000)
-            .build());
+        let explorer_cache = config.directory.explorer.enabled.then_some(
+            Cache::builder()
+                .time_to_live(Duration::from_secs(config.directory.explorer.cache_seconds))
+                .time_to_idle(Duration::from_secs(config.directory.explorer.cache_seconds) / 8)
+                .max_capacity(1000)
+                .build(),
+        );
 
         Self {
             client: S3ServiceClient {
@@ -190,9 +192,7 @@ impl S3Service {
             let index_file_key = key.clone() + index_file;
             let result = self.client.clone().get_object(&index_file_key).await;
             if result.is_ok() {
-                self.index_cache
-                    .insert(key, index_file.clone())
-                    .await;
+                self.index_cache.insert(key, index_file.clone()).await;
                 return result;
             }
         }
@@ -205,13 +205,11 @@ impl S3Service {
             }
             // Explore directory
             let directory = self.client.list_directory(&key).await?;
-            explorer_cache
-                .insert(key.clone(), directory.clone())
-                .await;
+            explorer_cache.insert(key.clone(), directory.clone()).await;
             return Ok(directory.into_response());
         }
 
-        return Err(AppError::NotFound)
+        return Err(AppError::NotFound);
     }
 }
 

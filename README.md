@@ -4,6 +4,8 @@ An `s3www`-like service, but written in Rust.
 
 ## Config
 
+Must be present at `./config.toml`.
+
 ```toml
 # Service exposure.
 [service]

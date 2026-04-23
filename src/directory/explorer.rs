@@ -1,5 +1,5 @@
-use askama::Template;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::{IntoResponse, Response};
+use maud::{DOCTYPE, html};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -10,8 +10,7 @@ pub struct DirectoryExplorerConfig {
     pub enabled: bool,
 }
 
-#[derive(Template, Serialize, Debug, Clone)]
-#[template(path = "explorer.html")]
+#[derive(Debug, Clone)]
 pub struct Directory {
     files: Vec<String>,
     directories: Vec<String>,
@@ -25,7 +24,20 @@ impl Directory {
 
 impl IntoResponse for Directory {
     fn into_response(self) -> Response {
-        let html = self.render().unwrap();
-        Html(html).into_response()
+        html! {
+            (DOCTYPE)
+            body {
+                ul {
+                    li { a href=".." { ".." } }
+                    @for dir in &self.directories {
+                        li { a href=(dir) { (dir) } }
+                    }
+                    @for file in &self.files {
+                        li { a href=(file) { (file) } }
+                    }
+                }
+            }
+        }
+        .into_response()
     }
 }
