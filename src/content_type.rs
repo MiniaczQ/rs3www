@@ -23,16 +23,16 @@ pub struct ContentTypeConfig {
 
 impl ContentTypeConfig {
     pub fn derive(&self, s3_path: impl AsRef<str>, s3_mime: Option<impl AsRef<str>>) -> String {
-        if let Some(extension) = s3_path.as_ref().split('.').last() {
-            if let Some(mime_type) = self.extension_mapping.get(extension) {
-                return mime_type.clone();
-            }
+        if let Some(extension) = s3_path.as_ref().split('.').next_back()
+            && let Some(mime_type) = self.extension_mapping.get(extension)
+        {
+            return mime_type.clone();
         }
 
-        if self.forward_s3_type {
-            if let Some(s3_mime) = s3_mime {
-                return s3_mime.as_ref().to_owned();
-            }
+        if self.forward_s3_type
+            && let Some(s3_mime) = s3_mime
+        {
+            return s3_mime.as_ref().to_owned();
         }
 
         self.fallback.clone()

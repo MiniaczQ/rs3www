@@ -209,7 +209,7 @@ impl S3Service {
             return Ok(directory.into_response());
         }
 
-        return Err(AppError::NotFound);
+        Err(AppError::NotFound)
     }
 }
 

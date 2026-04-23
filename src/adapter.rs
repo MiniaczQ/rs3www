@@ -1,4 +1,4 @@
-//! Ref: https://github.com/dpruessner/axum-static-s3/blob/main/src/adapter.rs
+//! Ref: <https://github.com/dpruessner/axum-static-s3/blob/main/src/adapter.rs>
 
 use std::{
     io::Error,
